@@ -1,0 +1,39 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Node.js
+frontend/node_modules/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.pnpm-debug.log*
+frontend/package-lock.json
+
+# Next.js
+frontend/.next/
+frontend/out/
+
+# Production
+frontend/build/
+frontend/dist/
+
+# IDEs
+frontend/.vscode/
+frontend/.idea/
+
+# OS files
+frontend/.DS_Store
+frontend/Thumbs.db
+
+# Project specific
+backend/config.py
+backend/data/
