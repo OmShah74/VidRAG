@@ -9,27 +9,46 @@ class GraphEngine:
         self.G = nx.Graph()
         self.load()
 
-    def add_entity(self, entity, entity_type, source_chunk_id):
-        if not self.G.has_node(entity):
-            self.G.add_node(entity, type=entity_type, chunks=[])
-        
-        # Link entity to the text chunk where it was found
-        if source_chunk_id not in self.G.nodes[entity]['chunks']:
-            self.G.nodes[entity]['chunks'].append(source_chunk_id)
+    def add_knowledge(self, entities, relations, source_chunk_id):
+        """
+        Constructs the graph iteratively.
+        Nodes = Entities.
+        Edges = Relations.
+        Metadata = Link back to the video chunk (source_chunk_id).
+        """
+        for ent in entities:
+            name = ent['name'].lower()
+            if not self.G.has_node(name):
+                self.G.add_node(name, type=ent['type'], chunks=[])
+            
+            # Link entity to video chunk
+            if source_chunk_id not in self.G.nodes[name]['chunks']:
+                self.G.nodes[name]['chunks'].append(source_chunk_id)
 
-    def add_relation(self, source, target, relation):
-        self.G.add_edge(source, target, relation=relation)
+        for rel in relations:
+            src = rel['source'].lower()
+            tgt = rel['target'].lower()
+            if self.G.has_node(src) and self.G.has_node(tgt):
+                self.G.add_edge(src, tgt, relation=rel['relation'])
 
-    def get_related_chunks(self, entities, hops=1):
-        """Retrieve chunk IDs related to specific entities."""
+    def retrieve_context(self, entities, hops=1):
+        """
+        Traverses the graph to find related video chunks.
+        Input: List of entities from the user query.
+        Output: Set of chunk IDs that contain these entities or their neighbors.
+        """
         relevant_chunks = set()
         for entity in entities:
+            entity = entity.lower()
             if self.G.has_node(entity):
-                # Add direct chunks
+                # 0-hop: The entity itself
                 relevant_chunks.update(self.G.nodes[entity]['chunks'])
-                # Traverse neighbors
-                for neighbor in self.G.neighbors(entity):
-                    relevant_chunks.update(self.G.nodes[neighbor]['chunks'])
+                
+                # 1-hop: Neighbors
+                if hops > 0:
+                    for neighbor in self.G.neighbors(entity):
+                        relevant_chunks.update(self.G.nodes[neighbor]['chunks'])
+        
         return list(relevant_chunks)
 
     def save(self):

@@ -12,5 +12,6 @@ transformers
 accelerate
 pillow
 nano-vectordb
+open_clip_torch
+scikit-learn
 timm
-einops
