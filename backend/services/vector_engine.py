@@ -4,11 +4,15 @@ from config import Config
 
 class VectorEngine:
     def __init__(self):
-        # 1. Textual Index (Dimensions: 1536 for OpenAI)
-        self.text_db = NanoVectorDB(embed_dim=1536, storage_file=os.path.join(Config.STORAGE_FOLDER, "text_index.json"))
+        self.text_db_path = os.path.join(Config.STORAGE_FOLDER, "text_index.json")
+        self.visual_db_path = os.path.join(Config.STORAGE_FOLDER, "visual_index.json")
         
-        # 2. Visual Index (Dimensions: 512 for ViT-B-32)
-        self.visual_db = NanoVectorDB(embed_dim=512, storage_file=os.path.join(Config.STORAGE_FOLDER, "visual_index.json"))
+        # FIX: Pass the dimension as the first positional argument
+        # 1536 for OpenAI Text Embeddings
+        self.text_db = NanoVectorDB(1536, storage_file=self.text_db_path)
+        
+        # 512 for OpenCLIP Visual Embeddings
+        self.visual_db = NanoVectorDB(512, storage_file=self.visual_db_path)
 
     def upsert_text(self, data):
         """Upsert into Textual Index"""

@@ -10,52 +10,57 @@ graph_db = GraphEngine()
 def query_videorag(user_query):
     print(f"🔍 Processing Query: {user_query}")
 
-    # 1. Query Reformulation & Decomposition
-    # Break the query into Visual intent, Textual intent, and Graph entities
+    # 1. Query Reformulation
     plan = ai.decompose_query(user_query)
     print(f"   Plan: {plan}")
 
-    candidate_chunks = {} # Map chunk_id -> metadata
+    candidate_chunks = {} 
 
-    # 2. Path A: Visual Retrieval (Cross-Modal)
-    # Search for visual scenes described in the query
+    # 2. Path A: Visual Retrieval
     if plan.get('visual_query'):
         vis_query_emb = ai.get_text_embedding_clip(plan['visual_query'])
         vis_results = vec_db.search_visual(vis_query_emb, top_k=3)
         for res in vis_results:
-            candidate_chunks[res['id']] = res['metadata']
+            # FIX: Access using __id__ and metadata key
+            chunk_id = res.get('__id__')
+            if chunk_id:
+                candidate_chunks[chunk_id] = res.get('metadata')
 
-    # 3. Path B: Textual Retrieval (Semantic)
-    # Standard RAG search
+    # 3. Path B: Textual Retrieval
     text_query_emb = ai.get_text_embedding_openai(plan['keyword_query'])
     text_results = vec_db.search_text(text_query_emb, top_k=3)
     for res in text_results:
-        candidate_chunks[res['id']] = res['metadata']
+        # FIX: Access using __id__
+        chunk_id = res.get('__id__')
+        if chunk_id:
+            candidate_chunks[chunk_id] = res.get('metadata')
 
-    # 4. Path C: Graph Retrieval (Structured)
-    # Find chunks related to the entities in the query
-    if plan.get('entities'):
-        graph_chunk_ids = graph_db.retrieve_context(plan['entities'], hops=1)
-        # Note: In a real DB, we'd fetch metadata for these IDs. 
-        # For prototype, we verify if they exist in our loaded text results or skip specific metadata fetch 
-        # (Assuming overlap with Vector Search, or we would need a Key-Value store lookup here).
-        # For MVP, we skip strictly fetching metadata for ONLY graph hits if not in vector hits to save complexity.
-
-    # 5. Context Integration
-    unique_sources = list(candidate_chunks.values())
+    # 4. Path C: Graph Retrieval (Simplified for Prototype)
+    # In a full production system, we would query metadata for these graph IDs.
+    # Here we skip explicitly fetching if not found in vector search to avoid complexity.
     
-    # Sort by timestamp to give linear context
-    unique_sources.sort(key=lambda x: x['start'])
+    # 5. Context Integration
+    unique_sources = [v for v in candidate_chunks.values() if v is not None]
+    
+    # Sort by timestamp
+    try:
+        unique_sources.sort(key=lambda x: x['start'])
+    except:
+        pass # Handle cases where start time might be missing safely
     
     context_str = ""
     for src in unique_sources:
         context_str += f"[Timestamp {src['start']}-{src['end']}s]: {src['text']}\n\n"
+
+    if not context_str:
+        context_str = "No relevant video segments found."
 
     # 6. LLM Response Generation
     system_prompt = """
     You are VideoRAG, an advanced video assistant. 
     Answer the user's question based strictly on the provided Video Context.
     Cite the timestamps (e.g., [10s-40s]) for every claim you make.
+    If the context is empty, say you don't know.
     """
 
     response = client.chat.completions.create(
