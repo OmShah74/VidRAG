@@ -53,4 +53,4 @@ def chat():
 
 if __name__ == '__main__':
     # Run on 0.0.0.0 to ensure it binds to all interfaces (IPv4/IPv6)
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True, debug_with_reloader=False, use_reloader=False)
